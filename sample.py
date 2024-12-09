@@ -70,7 +70,7 @@ def main() -> None:
     )
 
     idx2cls = train_dataset.idx2cls
-    save_images(images=images, idx2cls=idx2cls, path=cfg.IMAGES.DIR)
+    save_images(images=images, idx2cls=idx2cls, path=cfg.IMAGE.DIR)
 
     return
 

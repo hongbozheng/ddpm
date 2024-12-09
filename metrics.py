@@ -1,64 +1,97 @@
 from numpy import ndarray
-from typing import Tuple, Union
 
 from config import get_config
+import logger
 import numpy as np
 import os
+import random
 import scipy as sp
-import torch
+from logger import timestamp
 from PIL import Image
 from skimage.metrics import structural_similarity as ssim
 from tqdm import tqdm
 
 
-def fid(real: ndarray, generate: ndarray) -> ndarray:
-    mu_0 = real.mean(axis=0)
-    sig_0 = np.cov(m=real, rowvar=False)
-    mu_1 = generate.mean(axis=0)
-    sig_1 = np.cov(m=generate, rowvar=False)
+def fid(im_0: ndarray, im_1: ndarray) -> ndarray:
+    mu_0 = im_0.mean(axis=0)
+    sig_0 = np.cov(m=im_0, rowvar=False)
+    mu_1 = im_1.mean(axis=0)
+    sig_1 = np.cov(m=im_1, rowvar=False)
     fid = np.sum(a=(mu_0 - mu_1) ** 2.0) \
-        + np.trace(a=sig_0 + sig_1 - 2.0 * sp.sqrtm(A= sig_0 @ sig_1))
+        + np.trace(a=sig_0 + sig_1 - 2.0 * sp.linalg.sqrtm(A= sig_0 @ sig_1).real)
     return fid
 
 
 def main() -> None:
     cfg = get_config(args=None)
 
-    img_paths = os.listdir(path=cfg.IMAGE.DIR)
+    class_names = []
+    cls_fids = []
+    cls_mssims = []
 
-    fid = []
-    mssim = []
+    img_names = os.listdir(path=cfg.IMAGE.DIR)
 
-    for img_path in img_paths:
-        image = Image.open(img_path)
-        image = np.array(image)
+    img_tqdm = tqdm(iterable=img_names, position=0, leave=True)
+    img_tqdm.set_description(
+        desc=f"[{timestamp()}] {img_names[0]}",
+        refresh=True,
+    )
 
-        classes = os.listdir(path=cfg.DATA.DATA_DIR)
+    for img_name in img_tqdm:
+        img_tqdm.set_description(
+            desc=f"[{timestamp()}] {img_name}",
+            refresh=True,
+        )
+        img_path = os.path.join(cfg.IMAGE.DIR, img_name)
+        im_0 = Image.open(img_path)
+        im_0 = np.array(im_0)
 
-        filename = os.path.splitext(os.path.basename(img_path))[0]
+        class_name = os.path.splitext(img_name)[0]
+        class_names.append(class_name)
 
         fids = []
         mssims = []
 
-        filepath = os.path.join(cfg.DATA.DATA_DIR, filename)
-        filepaths = os.listdir(filepath)
-        for filepath in filepaths:
-            im1 = Image.open(img_path)
-            im1 = np.array(im1)
+        class_dir = os.path.join(cfg.DATA.DATA_DIR, class_name)
+        filenames = os.listdir(class_dir)
+        filenames = random.sample(filenames, k=int(0.1 * len(filenames)))
 
-            fid(real=image, generate=im1)
-            fids.append(fid)
-    
-        fid.append(np.array(fids).mean())
+        file_tqdm = tqdm(iterable=filenames, position=1, leave=False)
+        file_tqdm.set_description(
+            desc=f"[{timestamp()}] {filenames[0]}",
+            refresh=True,
+        )
 
-    # mssis, S = ssim(
-    #     im1=im_0,
-    #     im2=im_1,
-    #     win_size=win_size,
-    #     data_range=data_range,
-    #     channel_axis=channel_axis,
-    #     full=full,
-    # )
+        for filename in file_tqdm:
+            file_tqdm.set_description(
+                desc=f"[{timestamp()}] {filename}",
+                refresh=True,
+            )
+            filepath = os.path.join(class_dir, filename)
+            im_1 = Image.open(filepath)
+            im_1 = np.array(im_1)
+            f = fid(im_0=im_0, im_1=im_1)
+            fids.append(f)
+
+            data_range = im_0.max() - im_0.min()
+
+            mssis, S = ssim(
+                im1=im_0,
+                im2=im_1,
+                win_size=7,
+                data_range=data_range,
+                channel_axis=None,
+                full=True,
+            )
+            mssims.append(mssis)
+
+        fid_mean = np.mean(a=fids, dtype=np.float64)
+        cls_fids.append(fid_mean)
+        cls_mssim_mean = np.mean(a=mssims, dtype=np.float64)
+        cls_mssims.append(cls_mssim_mean)
+
+    for class_name, f, s in zip(class_names, cls_fids, cls_mssims):
+        logger.log_info(f"{class_name:<9}: FID {f:.6f} SSIM {s:.6f}")
 
     return
 
