@@ -1,4 +1,5 @@
 from torch import Tensor
+from typing import Optional
 
 import torch
 import torch.nn as nn
@@ -59,6 +60,39 @@ class ResAttnBlk(nn.Module):
         return x
 
 
+class PositionalEncoding(nn.Module):
+    def __init__(self, channels) -> None:
+        """
+        Initializes the PositionalEncoding layer.
+        :param channels: Number of channels (embedding size).
+        :param device: Device for tensor computation (e.g., 'cpu' or 'cuda').
+        """
+        super(PositionalEncoding, self).__init__()
+        self.channels = channels
+
+        # Precompute the inverse frequency for positional encodings
+        inv_freq = 1.0 / (
+            10000 ** (torch.arange(0, channels, 2).float() / channels)
+        )
+        self.register_buffer(name="inv_freq", tensor=inv_freq, persistent=False)
+
+        return
+
+    def forward(self, t: Tensor) -> Tensor:
+        """
+        Compute the positional encoding for input tensor t.
+        :param t: Input tensor of shape (batch_size, 1).
+        :return: Positional encoding tensor of shape (batch_size, channels).
+        """
+        # Expand t and compute sine and cosine encodings
+        pos_enc_a = torch.sin(t.repeat(1, self.channels // 2) * self.inv_freq)
+        pos_enc_b = torch.cos(t.repeat(1, self.channels // 2) * self.inv_freq)
+        # Concatenate sine and cosine encodings
+        pos_enc = torch.cat([pos_enc_a, pos_enc_b], dim=-1)
+
+        return pos_enc
+
+
 class UNet(nn.Module):
     def __init__(
             self,
@@ -69,6 +103,8 @@ class UNet(nn.Module):
             dropout: float,
             n_layers: int,
             n_heads: int,
+            n_classes: int,
+            t_emb_dim: int,
     ) -> None:
         super().__init__()
 
@@ -164,10 +200,22 @@ class UNet(nn.Module):
             ),
         )
 
+        self.pe = PositionalEncoding(channels=t_emb_dim)
+
+        self.label_emb = nn.Embedding(
+            num_embeddings=n_classes,
+            embedding_dim=t_emb_dim,
+        )
+
         return
 
-    def forward(self, x: Tensor, t: Tensor) -> Tensor:
-        t = t.unsqueeze(-1).type(torch.float).expand(-1, 128)
+    def forward(self, x: Tensor, t: Tensor, y: Tensor) -> Tensor:
+        t = t.unsqueeze(dim=-1).to(dtype=torch.float32)
+        t = self.pe(t)
+
+        if y is not None:
+            t += self.label_emb(y)
+
         x = self.init_conv(x)
         x = self.init_resblk(x, t)
 
@@ -191,19 +239,3 @@ class UNet(nn.Module):
         x = self.out(x)
 
         return x
-
-
-model = UNet(
-    in_channels=1,
-    channels=32,
-    out_channels=1,
-    n_groups=32,
-    dropout=0.2,
-    n_layers=3,
-    n_heads=4,
-)
-print(sum([p.numel() for p in model.parameters()]))
-x = torch.randn(3, 1, 64, 64)
-t = x.new_tensor([500] * x.shape[0])
-# y = x.new_tensor([1] * x.shape[0])
-print(model(x, t).shape)

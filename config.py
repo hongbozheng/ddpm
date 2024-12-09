@@ -14,18 +14,23 @@ _C.BASE = ['']
 # -----------------------------------------------------------------------------
 _C.MODEL = CN()
 
-""" Transformer """
-_C.MODEL.TX = CN()
-_C.MODEL.TX.EMB_DIM = 512
-# _C.MODEL.TX.SRC_VOCAB_SIZE = len(tokenizer.components)
-# _C.MODEL.TX.TGT_VOCAB_SIZE = len(tokenizer.components)
-_C.MODEL.TX.SRC_SEQ_LEN = 200
-_C.MODEL.TX.TGT_SEQ_LEN = 200
-_C.MODEL.TX.N_ENCODER_LAYERS = 6
-_C.MODEL.TX.N_DECODER_LAYERS = 6
-_C.MODEL.TX.N_HEADS = 8
-_C.MODEL.TX.DROPOUT = 0.1
-_C.MODEL.TX.DIM_FEEDFORWARD = 2048
+""" U-Net """
+_C.MODEL.UNET = CN()
+_C.MODEL.UNET.IN_CHANNELS = 1
+_C.MODEL.UNET.OUT_CHANNELS = 1
+_C.MODEL.UNET.CHANNELS = 32
+_C.MODEL.UNET.N_GROUPS = 32
+_C.MODEL.UNET.DROPOUT = 0.0
+_C.MODEL.UNET.N_LAYERS = 6
+_C.MODEL.UNET.N_HEADS = 8
+_C.MODEL.UNET.T_EMB_DIM = _C.MODEL.UNET.CHANNELS * 4
+
+""" Diffusion """
+_C.MODEL.DDPM = CN()
+_C.MODEL.DDPM.NOISE_STEPS = 2000
+_C.MODEL.DDPM.BETA_START = 1
+_C.MODEL.DDPM.BETA_END = 32
+_C.MODEL.DDPM.IMG_SIZE = 64
 
 
 # -----------------------------------------------------------------------------
@@ -35,7 +40,7 @@ _C.BEST_MODEL = CN()
 
 """ Model """
 _C.BEST_MODEL.DIR = "models"
-_C.BEST_MODEL.TX = _C.BEST_MODEL.DIR + "/tx.ckpt"
+_C.BEST_MODEL.TX = _C.BEST_MODEL.DIR + "/unet.ckpt"
 
 
 # -----------------------------------------------------------------------------
@@ -69,6 +74,14 @@ _C.LRS.CALR.LAST_EPOCH = -1
 
 
 # -----------------------------------------------------------------------------
+# EMA
+# -----------------------------------------------------------------------------
+_C.EMA = CN()
+
+_C.EMA.BETA = 0.995
+
+
+# -----------------------------------------------------------------------------
 # Criterion
 # -----------------------------------------------------------------------------
 _C.CRITERION = CN()
@@ -83,10 +96,8 @@ _C.CRITERION.CROSSENTROPY.LABEL_SMOOTHING = 0.1
 # -----------------------------------------------------------------------------
 _C.DATA = CN()
 
-""" EquivExpr """
+""" Medical MNIST """
 _C.DATA.DATA_DIR = "data"
-_C.DATA.TRAIN_FILE = _C.DATA.DATA_DIR + "/expr_pairs.txt"
-_C.DATA.VAL_FILE = _C.DATA.DATA_DIR + "/exprs_val.txt"
 
 
 # -----------------------------------------------------------------------------
@@ -96,14 +107,14 @@ _C.LOADER = CN()
 
 """ Train DataLoader """
 _C.LOADER.TRAIN = CN()
-_C.LOADER.TRAIN.BATCH_SIZE = 256
-_C.LOADER.TRAIN.SHUFFLE = False
+_C.LOADER.TRAIN.BATCH_SIZE = 32
+_C.LOADER.TRAIN.SHUFFLE = True
 _C.LOADER.TRAIN.NUM_WORKERS = 1
 _C.LOADER.TRAIN.PIN_MEMORY = True
 
 """ Val DataLoader """
 _C.LOADER.VAL = CN()
-_C.LOADER.VAL.BATCH_SIZE = 256
+_C.LOADER.VAL.BATCH_SIZE = 32
 _C.LOADER.VAL.SHUFFLE = False
 _C.LOADER.VAL.NUM_WORKERS = 1
 _C.LOADER.VAL.PIN_MEMORY = True
