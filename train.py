@@ -1,5 +1,6 @@
 from torch import Tensor
 
+import os
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -34,7 +35,7 @@ def train_epoch(
         if torch.rand(1) < 0.1:
             label = None
         pred_noise = model(x=x_t, t=t, y=label)
-        loss = criterion(pred_noise, noise)
+        loss = criterion(noise, pred_noise)
 
         optimizer.zero_grad()
         loss.backward()
@@ -42,7 +43,7 @@ def train_epoch(
         ema.step_ema(ema_model=ema_model, model=model)
 
         loader_tqdm.set_description(
-            desc=f"[{timestamp()}] [Batch {i + 1}]: train loss {loss:.6f}",
+            desc=f"[{timestamp()}] [Batch {i + 1}]: train loss {loss.item():.6f}",
             refresh=True,
         )
 
@@ -52,7 +53,7 @@ def train_epoch(
         # torch.save(model.state_dict(),
         #            os.path.join("models", args.run_name, f"ckpt.pt"))
 
-    return loss
+    return loss.item()
 
 
 def train_model(
@@ -73,6 +74,10 @@ def train_model(
 
     init_epoch = 0
     best_loss = float('-inf')
+
+    if os.path.exist(path=ckpt_filepath):
+        ckpt = torch.load(f=ckpt_filepath, map_location=device)
+        model.load_state_dict(state_dict=ckpt["model"])
 
     epoch_tqdm = tqdm(
         iterable=range(init_epoch, n_epochs),

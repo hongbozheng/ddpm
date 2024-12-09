@@ -207,6 +207,15 @@ class UNet(nn.Module):
             embedding_dim=t_emb_dim,
         )
 
+        self._reset_parameters()
+
+        return
+
+    def _reset_parameters(self) -> None:
+        for p in self.parameters():
+            if p.dim() > 1:
+                nn.init.xavier_uniform_(tensor=p)
+
         return
 
     def forward(self, x: Tensor, t: Tensor, y: Tensor) -> Tensor:
