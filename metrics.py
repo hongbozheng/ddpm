@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 from numpy import ndarray
 
 from config import get_config
@@ -12,14 +14,14 @@ from skimage.metrics import structural_similarity as ssim
 from tqdm import tqdm
 
 
-def fid(im_0: ndarray, im_1: ndarray) -> ndarray:
+def fid(im_0: ndarray, im_1: ndarray) -> float:
     mu_0 = im_0.mean(axis=0)
     sig_0 = np.cov(m=im_0, rowvar=False)
     mu_1 = im_1.mean(axis=0)
     sig_1 = np.cov(m=im_1, rowvar=False)
     fid = np.sum(a=(mu_0 - mu_1) ** 2.0) \
         + np.trace(a=sig_0 + sig_1 - 2.0 * sp.linalg.sqrtm(A= sig_0 @ sig_1).real)
-    return fid
+    return fid.item()
 
 
 def main() -> None:
