@@ -1,10 +1,8 @@
 #!/usr/bin/env python3
 
-import torch.nn as nn
-import copy
-
-
 from config import get_config, DEVICE
+import copy
+import torch.nn as nn
 from dataset import MedicalMNIST
 from ddpm import Diffusion
 from ema import EMA
@@ -46,8 +44,6 @@ def main() -> None:
         device=DEVICE,
     )
 
-
-
     train_loader = DataLoader(
         dataset=train_dataset,
         batch_size=cfg.LOADER.TRAIN.BATCH_SIZE,
@@ -55,10 +51,10 @@ def main() -> None:
         num_workers=cfg.LOADER.TRAIN.NUM_WORKERS,
         pin_memory=cfg.LOADER.TRAIN.PIN_MEMORY,
     )
-    for batch in train_loader:
-        print(batch["image"], batch["image"].shape)
-        print(batch["label"], batch["label"].shape)
-        break
+    # for batch in train_loader:
+    #     print(batch["image"], batch["image"].shape)
+    #     print(batch["label"], batch["label"].shape)
+    #     break
 
     optimizer = AdamW(
         params=model.parameters(),

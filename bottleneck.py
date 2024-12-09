@@ -1,9 +1,8 @@
 from torch import Tensor
 
-from torch import nn
 from attention import MultiHeadAttention
 from resblk import ResBlk
-from upsample import Upsample
+from torch import nn
 
 
 class Bottleneck(nn.Module):

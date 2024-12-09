@@ -40,7 +40,7 @@ _C.BEST_MODEL = CN()
 
 """ Model """
 _C.BEST_MODEL.DIR = "models"
-_C.BEST_MODEL.TX = _C.BEST_MODEL.DIR + "/unet.ckpt"
+_C.BEST_MODEL.UNET = _C.BEST_MODEL.DIR + "/unet.ckpt"
 
 
 # -----------------------------------------------------------------------------
@@ -107,7 +107,7 @@ _C.LOADER = CN()
 
 """ Train DataLoader """
 _C.LOADER.TRAIN = CN()
-_C.LOADER.TRAIN.BATCH_SIZE = 8
+_C.LOADER.TRAIN.BATCH_SIZE = 32
 _C.LOADER.TRAIN.SHUFFLE = True
 _C.LOADER.TRAIN.NUM_WORKERS = 1
 _C.LOADER.TRAIN.PIN_MEMORY = True
@@ -153,6 +153,15 @@ END = 75.0
 N = 3
 TOL = 1e-10
 SECS = 10
+
+
+# -----------------------------------------------------------------------------
+# Validation
+# -----------------------------------------------------------------------------
+_C.IMAGES = CN()
+
+""" Saved Images """
+_C.IMAGES.DIR = "images"
 
 
 def get_config(args):

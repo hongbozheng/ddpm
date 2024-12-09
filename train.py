@@ -1,10 +1,9 @@
-from torch import Tensor
-
+import logger
 import os
 import torch
 import torch.nn as nn
 import torch.optim as optim
-
+from avg_meter import AverageMeter
 from ddpm import Diffusion
 from ema import EMA
 from logger import timestamp
@@ -27,7 +26,9 @@ def train_epoch(
     loader_tqdm = tqdm(iterable=train_loader, position=1, leave=False)
     loader_tqdm.set_description(desc=f"[{timestamp()}] [Batch 0]", refresh=True)
 
-    for i, batch in enumerate(train_loader):
+    loss_meter = AverageMeter()
+
+    for i, batch in enumerate(loader_tqdm):
         image = batch["image"].to(device=device)
         label = batch["label"].to(device=device)
         t = diffusion.sample_timesteps(n=image.size(dim=0)).to(device=device)
@@ -42,8 +43,10 @@ def train_epoch(
         optimizer.step()
         ema.step_ema(ema_model=ema_model, model=model)
 
+        loss_meter.update(loss.item(), n=image.size(dim=0))
+
         loader_tqdm.set_description(
-            desc=f"[{timestamp()}] [Batch {i + 1}]: train loss {loss.item():.6f}",
+            desc=f"[{timestamp()}] [Batch {i + 1}]: train loss {loss_meter.avg:.6f}",
             refresh=True,
         )
 
@@ -53,7 +56,7 @@ def train_epoch(
         # torch.save(model.state_dict(),
         #            os.path.join("models", args.run_name, f"ckpt.pt"))
 
-    return loss.item()
+    return loss_meter.avg
 
 
 def train_model(
@@ -71,13 +74,26 @@ def train_model(
 ) -> None:
     model.to(device=device)
     model.train(mode=True)
+    ema_model.to(device=device)
+
+    path, _ = os.path.split(p=ckpt_filepath)
+    if not os.path.exists(path=path):
+        os.makedirs(name=path, exist_ok=True)
 
     init_epoch = 0
-    best_loss = float('-inf')
+    best_loss = float('inf')
 
-    if os.path.exist(path=ckpt_filepath):
+    if os.path.exists(path=ckpt_filepath):
         ckpt = torch.load(f=ckpt_filepath, map_location=device)
         model.load_state_dict(state_dict=ckpt["model"])
+        optimizer.load_state_dict(state_dict=ckpt["optimizer"])
+        lr_scheduler.load_state_dict(state_dict=ckpt["lr_scheduler"])
+        init_epoch = ckpt["epoch"]+1
+        best_loss = ckpt["best_loss"]
+        state_dict = torch.load(f="models/ema.pt", map_location=device)
+        ema_model.load_state_dict(state_dict=state_dict)
+        filename = os.path.basename(p=ckpt_filepath)
+        logger.log_info(f"Loaded '{filename}'")
 
     epoch_tqdm = tqdm(
         iterable=range(init_epoch, n_epochs),
@@ -91,7 +107,7 @@ def train_model(
             desc=f"[{timestamp()}] [Epoch {epoch}]",
             refresh=True,
         )
-        loss = train_epoch(
+        avg_loss = train_epoch(
             model=model,
             diffusion=diffusion,
             train_loader=train_loader,
@@ -103,10 +119,10 @@ def train_model(
         )
         lr_scheduler.step()
 
-        epoch_tqdm.write(s=f"[{timestamp()}] [Epoch {epoch}]: loss {loss:.6f}")
+        epoch_tqdm.write(s=f"[{timestamp()}] [Epoch {epoch}]: loss {avg_loss:.6f}")
 
-        if loss <  best_loss:
-            best_loss = loss
+        if avg_loss <  best_loss:
+            best_loss = avg_loss
             torch.save(
                 obj={
                     "model": model.state_dict(),
@@ -117,6 +133,7 @@ def train_model(
                 },
                 f=ckpt_filepath,
             )
+            torch.save(obj=ema_model.state_dict(), f="models/ema.pt")
             epoch_tqdm.write(
                 s=f"[{timestamp()}] [Epoch {epoch}]: Saved best model to "
                   f"'{ckpt_filepath}'"

@@ -1,5 +1,4 @@
 from torch import Tensor
-from typing import Optional
 
 import torch
 import torch.nn as nn
@@ -67,7 +66,7 @@ class PositionalEncoding(nn.Module):
         :param channels: Number of channels (embedding size).
         :param device: Device for tensor computation (e.g., 'cpu' or 'cuda').
         """
-        super(PositionalEncoding, self).__init__()
+        super().__init__()
         self.channels = channels
 
         # Precompute the inverse frequency for positional encodings

@@ -10,6 +10,7 @@ class MedicalMNIST(Dataset):
         self.image_paths = []
         self.labels = []
         self.cls2idx = {}
+        self.idx2cls = {}
         self.transform = transform
 
         self._load_data(path=path)
@@ -26,6 +27,7 @@ class MedicalMNIST(Dataset):
             class_path = os.path.join(path, class_name)
             if os.path.isdir(class_path):
                 self.cls2idx[class_name] = i
+                self.idx2cls[i] = class_name
                 for image_name in os.listdir(class_path):
                     image_path = os.path.join(class_path, image_name)
                     if image_path.lower().endswith('.jpeg'):
@@ -41,7 +43,8 @@ class MedicalMNIST(Dataset):
 
         image = self.transform(image)
 
-        image = torch.tensor(image, dtype=torch.float32)
+        # image = torch.tensor(image, dtype=torch.float32)
+        image = image.to(dtype=torch.float32)
         label = torch.tensor(label, dtype=torch.int64)
         item = {'image': image, 'label': label}
 

@@ -1,6 +1,8 @@
 from torch import Tensor
 from typing import Tuple
 
+import logger
+import os
 import torch
 import torch.nn as nn
 from logger import timestamp
@@ -51,28 +53,38 @@ class Diffusion:
     def sample(
             self,
             model: nn.Module,
-            n: int,
-            label: Tensor,
+            device: torch.device,
+            ckpt_filepath: str,
+            labels: Tensor,
             cfg_scale: int,
     ) -> Tensor:
+        model.to(device=device)
         model.eval()
+
+        if os.path.exists(path=ckpt_filepath):
+            ckpt = torch.load(f=ckpt_filepath, map_location=device)
+            model.load_state_dict(state_dict=ckpt["model"])
+            filename = os.path.basename(p=ckpt_filepath)
+            logger.log_info(f"Loaded '{filename}'")
 
         sample_tqdm = tqdm(
             iterable=range(self.noise_steps - 1, 0, -1),
-            position=1,
+            position=0,
             leave=False,
         )
         sample_tqdm.set_description(
-            desc=f"[{timestamp()}] [Sample 0]",
+            desc=f"[{timestamp()}] [Sample {self.noise_steps}]",
             refresh=True,
         )
+
+        n = labels.size(dim=0)
 
         with torch.no_grad():
             x = torch.randn((n, 1, self.img_size, self.img_size)).to(self.device)
 
             for i in sample_tqdm:
-                t = (torch.ones(n) * i).long().to(self.device)
-                pred_noise = model(x=x, t=t, y=label)
+                t = torch.full((n,), i, dtype=torch.int64, device=device)
+                pred_noise = model(x=x, t=t, y=labels)
                 if cfg_scale > 0:
                     uncond_pred_noise = model(x=x, t=t, y=None)
                     pred_noise = torch.lerp(
@@ -89,8 +101,14 @@ class Diffusion:
                     noise = torch.zeros_like(x)
                 x = 1 / torch.sqrt(alpha) * (x - ((1 - alpha) / (
                     torch.sqrt(1 - alpha_hat))) * pred_noise)+ torch.sqrt(beta) * noise
+
+                sample_tqdm.set_description(
+                    desc=f"[{timestamp()}] [Sample {i}]",
+                    refresh=True,
+                )
+
         model.train()
         x = (x.clamp(-1, 1) + 1) / 2
-        x = (x * 255).type(torch.uint8)
+        x = (x * 255).to(dtype=torch.uint8)
 
         return x
