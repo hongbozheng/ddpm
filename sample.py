@@ -42,13 +42,14 @@ def main() -> None:
     model = UNet(
         in_channels=cfg.MODEL.UNET.IN_CHANNELS,
         out_channels=cfg.MODEL.UNET.OUT_CHANNELS,
-        channels=cfg.MODEL.UNET.CHANNELS,
+        n_channels=cfg.MODEL.UNET.N_CHANNELS,
+        n_blks=cfg.MODEL.UNET.N_BLKS,
+        attn=cfg.MODEL.UNET.ATTN,
         n_groups=cfg.MODEL.UNET.N_GROUPS,
-        dropout=cfg.MODEL.UNET.DROPOUT,
-        n_layers=cfg.MODEL.UNET.N_LAYERS,
+        eps=cfg.MODEL.UNET.EPS,
         n_heads=cfg.MODEL.UNET.N_HEADS,
-        n_classes=n_classes,    
         t_emb_dim=cfg.MODEL.UNET.T_EMB_DIM,
+        n_classes=len(train_dataset.cls2idx),
     )
 
     diffusion = Diffusion(

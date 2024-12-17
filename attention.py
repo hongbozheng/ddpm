@@ -8,12 +8,11 @@ import torch.nn as nn
 
 
 class MultiHeadAttention(nn.Module):
-    def __init__(self, d_emb: int, n_heads: int, dropout: float) -> None:
+    def __init__(self, d_emb: int, n_heads: int) -> None:
         """
         Args:
             d_emb: embedding dimension
             n_heads: number of heads
-            dropout: dropout probability
         """
         super().__init__()
         self.d_emb = d_emb
@@ -46,7 +45,7 @@ class MultiHeadAttention(nn.Module):
             out_features=d_emb,
             bias=False,
         )
-        self.dropout = nn.Dropout(p=dropout)
+
         return
 
     @staticmethod
@@ -55,7 +54,6 @@ class MultiHeadAttention(nn.Module):
             k: Tensor,
             v: Tensor,
             mask: Optional[Tensor],
-            dropout: Optional[nn.Dropout],
     ) -> Tuple[Tensor, Tensor]:
         """
         Args:
@@ -77,9 +75,6 @@ class MultiHeadAttention(nn.Module):
             attn_scores.masked_fill_(mask=mask == 0, value=float('-inf'))
 
         attn_scores = attn_scores.softmax(dim=-1)
-
-        if dropout is not None:
-            attn_scores = dropout(attn_scores)
 
         # [N, H, L, D_head]
         return (attn_scores @ v), attn_scores
@@ -121,7 +116,6 @@ class MultiHeadAttention(nn.Module):
             k=k,
             v=v,
             mask=mask,
-            dropout=self.dropout,
         )
 
         # [N, H, L, D_head] -> [N, L, H, D_head]

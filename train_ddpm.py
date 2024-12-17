@@ -27,14 +27,30 @@ def main() -> None:
     model = UNet(
         in_channels=cfg.MODEL.UNET.IN_CHANNELS,
         out_channels=cfg.MODEL.UNET.OUT_CHANNELS,
-        channels=cfg.MODEL.UNET.CHANNELS,
+        n_channels=cfg.MODEL.UNET.N_CHANNELS,
+        n_blks=cfg.MODEL.UNET.N_BLKS,
+        attn=cfg.MODEL.UNET.ATTN,
         n_groups=cfg.MODEL.UNET.N_GROUPS,
-        dropout=cfg.MODEL.UNET.DROPOUT,
-        n_layers=cfg.MODEL.UNET.N_LAYERS,
+        eps=cfg.MODEL.UNET.EPS,
         n_heads=cfg.MODEL.UNET.N_HEADS,
-        n_classes=len(train_dataset.cls2idx),
         t_emb_dim=cfg.MODEL.UNET.T_EMB_DIM,
+        n_classes=len(train_dataset.cls2idx),
     )
+
+    # param_size = 0
+    # for param in model.parameters():
+    #     param_size += param.nelement() * param.element_size()
+    # buffer_size = 0
+    # for buffer in model.buffers():
+    #     buffer_size += buffer.nelement() * buffer.element_size()
+
+    # size_all_mb = (param_size + buffer_size) / 1024**2
+    # print('model size: {:.3f}MB'.format(size_all_mb))
+
+    # pytorch_total_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+    # print(pytorch_total_params)
+
+    # return
 
     diffusion = Diffusion(
         noise_steps=cfg.MODEL.DDPM.NOISE_STEPS,
@@ -84,7 +100,7 @@ def main() -> None:
         model=model,
         diffusion=diffusion,
         device=DEVICE,
-        ckpt_filepath=cfg.BEST_MODEL.TX,
+        ckpt_filepath=cfg.BEST_MODEL.UNET,
         optimizer=optimizer,
         lr_scheduler=lr_scheduler,
         n_epochs=cfg.TRAIN.N_EPOCHS,
