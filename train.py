@@ -83,14 +83,14 @@ def train_model(
     init_epoch = 0
     best_loss = float('inf')
 
-    if os.path.exists(path=ckpt_filepath):
-        ckpt = torch.load(f=ckpt_filepath, map_location=device)
+    if os.path.exists(path="models/last_unet.ckpt"):
+        ckpt = torch.load(f="models/last_unet.ckpt", map_location=device)
         model.load_state_dict(state_dict=ckpt["model"])
         optimizer.load_state_dict(state_dict=ckpt["optimizer"])
         lr_scheduler.load_state_dict(state_dict=ckpt["lr_scheduler"])
         init_epoch = ckpt["epoch"]+1
         best_loss = ckpt["best_loss"]
-        state_dict = torch.load(f="models/ema.pt", map_location=device)
+        state_dict = torch.load(f="models/last_ema.pt", map_location=device)
         ema_model.load_state_dict(state_dict=state_dict)
         filename = os.path.basename(p=ckpt_filepath)
         logger.log_info(f"Loaded '{filename}'")
@@ -138,5 +138,21 @@ def train_model(
                 s=f"[{timestamp()}] [Epoch {epoch}]: Saved best model to "
                   f"'{ckpt_filepath}'"
             )
+
+        torch.save(
+                obj={
+                    "model": model.state_dict(),
+                    "optimizer": optimizer.state_dict(),
+                    "lr_scheduler": lr_scheduler.state_dict(),
+                    "epoch": epoch,
+                    "best_loss": best_loss,
+                },
+                f="models/last_unet.ckpt",
+            )
+        torch.save(obj=ema_model.state_dict(), f="models/last_ema.pt")
+        epoch_tqdm.write(
+            s=f"[{timestamp()}] [Epoch {epoch}]: Saved last model to "
+               "'models/last_unet.ckpt'"
+        )
 
     return

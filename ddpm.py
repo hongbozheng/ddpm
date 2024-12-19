@@ -2,6 +2,7 @@ from torch import Tensor
 from typing import Tuple
 
 import logger
+import math
 import os
 import torch
 import torch.nn as nn
@@ -31,12 +32,19 @@ class Diffusion:
 
         return
 
-    def noise_schedule(self) -> Tensor:
-        return torch.linspace(
-            start=self.beta_start,
-            end=self.beta_end,
-            steps=self.noise_steps,
-        )
+    def noise_schedule(self, s=8e-3) -> Tensor:
+        # return torch.linspace(
+        #     start=self.beta_start,
+        #     end=self.beta_end,
+        #     steps=self.noise_steps,
+        # )
+
+        steps = self.noise_steps + 1
+        t = torch.linspace(0, self.noise_steps, steps, dtype = torch.float32) / self.noise_steps
+        alphas_cumprod = torch.cos((t + s) / (1 + s) * math.pi * 0.5) ** 2
+        alphas_cumprod = alphas_cumprod / alphas_cumprod[0]
+        betas = 1 - (alphas_cumprod[1:] / alphas_cumprod[:-1])
+        return torch.clip(betas, 0, 2e-2)
 
     def noise_image(self, x: Tensor, t: Tensor) -> Tuple[Tensor, Tensor]:
         # [N] -> [N, 1, 1, 1]

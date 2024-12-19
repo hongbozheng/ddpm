@@ -7,7 +7,7 @@ from dataset import MedicalMNIST
 from ddpm import Diffusion
 from ema import EMA
 from torch.optim import AdamW
-from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts
+from torch.optim.lr_scheduler import CosineAnnealingLR, CosineAnnealingWarmRestarts
 from torch.utils.data import DataLoader
 from torchvision.transforms import transforms
 from train import train_model
@@ -62,20 +62,20 @@ def main() -> None:
         weight_decay=cfg.OPTIM.ADAMW.WEIGHT_DECAY,
     )
 
-    # lr_scheduler = CosineAnnealingLR(
-    #     optimizer=optimizer,
-    #     T_max=10,
-    #     eta_min=1e-8,
-    #     last_epoch=-1,
-    # )
-
-    lr_scheduler = CosineAnnealingWarmRestarts(
+    lr_scheduler = CosineAnnealingLR(
         optimizer=optimizer,
-        T_0=cfg.LRS.CAWR.T_0,
-        T_mult=cfg.LRS.CAWR.T_MULT,
-        eta_min=cfg.LRS.CAWR.ETA_MIN,
-        last_epoch=cfg.LRS.CAWR.LAST_EPOCH,
+        T_max=cfg.TRAIN.N_EPOCHS,
+        eta_min=1e-8,
+        last_epoch=-1,
     )
+
+    # lr_scheduler = CosineAnnealingWarmRestarts(
+    #     optimizer=optimizer,
+    #     T_0=cfg.LRS.CAWR.T_0,
+    #     T_mult=cfg.LRS.CAWR.T_MULT,
+    #     eta_min=cfg.LRS.CAWR.ETA_MIN,
+    #     last_epoch=cfg.LRS.CAWR.LAST_EPOCH,
+    # )
 
     ema = EMA(beta=cfg.EMA.BETA)
     ema_model = copy.deepcopy(model).eval().requires_grad_(False)
@@ -84,7 +84,7 @@ def main() -> None:
         model=model,
         diffusion=diffusion,
         device=DEVICE,
-        ckpt_filepath=cfg.BEST_MODEL.TX,
+        ckpt_filepath=cfg.BEST_MODEL.UNET,
         optimizer=optimizer,
         lr_scheduler=lr_scheduler,
         n_epochs=cfg.TRAIN.N_EPOCHS,

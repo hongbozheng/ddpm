@@ -27,7 +27,7 @@ _C.MODEL.UNET.T_EMB_DIM = _C.MODEL.UNET.CHANNELS * 4
 
 """ Diffusion """
 _C.MODEL.DDPM = CN()
-_C.MODEL.DDPM.NOISE_STEPS = 2000
+_C.MODEL.DDPM.NOISE_STEPS = 1000
 _C.MODEL.DDPM.BETA_START = 1e-4
 _C.MODEL.DDPM.BETA_END = 2e-2
 _C.MODEL.DDPM.IMG_SIZE = 64
@@ -123,7 +123,7 @@ _C.LOADER.VAL.PIN_MEMORY = True
 # -----------------------------------------------------------------------------
 # Hyperparams
 # -----------------------------------------------------------------------------
-SEED = 42
+SEED = 547
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 torch.manual_seed(seed=SEED)
 torch.cuda.manual_seed_all(seed=SEED)
@@ -138,7 +138,7 @@ LOG_LEVEL = LogLevel.INFO
 _C.TRAIN = CN()
 
 """ Training """
-_C.TRAIN.N_EPOCHS = 50
+_C.TRAIN.N_EPOCHS = 100
 _C.TRAIN.MAX_NORM = 4.0
 
 
